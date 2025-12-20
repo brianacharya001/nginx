@@ -23,8 +23,22 @@ jobs:
       run: |
         sed -i "s/{{REVISION}}/${REVISION}/g" manifests/deployment.yaml
 
-    - name: Deploy manifests
+    - name: Apply manifests
       run: kubectl apply -f manifests/
 
-    - name: Verify deployment
-      run: kubectl get deployment nginx-deployment -o wide
+    - name: Wait for rollout to complete
+      run: |
+        set +e
+        kubectl rollout status deployment/nginx-deployment --timeout=60s
+        STATUS=$?
+        set -e
+
+        if [ $STATUS -ne 0 ]; then
+          echo "❌ Rollout failed — rolling back to previous revision"
+          kubectl rollout undo deployment/nginx-deployment
+          kubectl rollout status deployment/nginx-deployment --timeout=60s
+          exit 1
+        fi
+
+    - name: Show final deployment state
+      run: kubectl describe deployment nginx-deployment
