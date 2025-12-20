@@ -1,5 +1,4 @@
 name: Deploy Nginx to Localhost (Minikube)
-
 on:
   workflow_dispatch: # Manual trigger
 
