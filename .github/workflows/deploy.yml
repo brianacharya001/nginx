@@ -4,8 +4,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: self-hosted # 👈 runs on your local machine
-
+    runs-on: [self-hosted, linux, x64]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
