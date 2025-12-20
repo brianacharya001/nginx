@@ -1,0 +1,21 @@
+name: Deploy Nginx to Localhost (Minikube)
+
+on:
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  deploy:
+    runs-on: self-hosted # 👈 runs on your local machine
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Kubernetes cluster
+        run: kubectl get nodes
+
+      - name: Deploy manifests
+        run: kubectl apply -f manifests/
+
+      - name: Verify deployment
+        run: kubectl get pods,services
