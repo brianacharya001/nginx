@@ -18,6 +18,7 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: nginx:latest
+          #image: nginx:latest
+          image: nginx: bad
           ports:
             - containerPort: 80
