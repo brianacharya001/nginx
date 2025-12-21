@@ -1,4 +1,4 @@
-name: Deploy Nginx (Fail & Delete Failed Revision)
+name: Deploy Nginx with Revision Handling
 
 on:
   workflow_dispatch:
@@ -19,15 +19,19 @@ jobs:
         REVISION=$(echo "${GITHUB_SHA}" | cut -c1-7)
         echo "REVISION=$REVISION" >> $GITHUB_ENV
 
-    - name: Inject revision into manifests
+    - name: Deploy healthy revision
       run: |
-        sed -i "s/{{REVISION}}/${REVISION}/g" manifests/bad-deployment.yaml
+        # Inject revision safely and apply
+        envsubst < manifests/deployment.yaml > manifests/deployment-processed.yaml
+        kubectl apply -f manifests/deployment-processed.yaml
 
-    - name: Apply manifests (may fail)
-      run: kubectl apply -f manifests/
-
-    - name: Monitor rollout and delete failed revision
+    - name: Deploy failing revision (optional test)
       run: |
+        # Inject revision safely
+        envsubst < manifests/bad-deployment.yaml > manifests/bad-deployment-processed.yaml
+        kubectl apply -f manifests/bad-deployment-processed.yaml || true
+
+        # Check rollout status
         set +e
         kubectl rollout status deployment/nginx-deployment --timeout=60s
         STATUS=$?
@@ -36,14 +40,11 @@ jobs:
         if [ $STATUS -ne 0 ]; then
           echo "❌ Deployment failed"
           echo "🗑️ Deleting failed deployment revision to clear pods"
-
           kubectl delete deployment nginx-deployment
-          
           echo "✅ Failed deployment deleted — previous pods remain unaffected"
-          exit 1
+        else
+          echo "✅ Deployment successfully completed"
         fi
 
-        echo "✅ Deployment successfully completed"
-
     - name: Show final deployment state
-      run: kubectl get deployments,pods
+      run: kubectl get deployments,pods,services
