@@ -17,6 +17,6 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: nginx:does-not-exist  # ❌ invalid image for failure test
+        image: nginx:latest
         ports:
         - containerPort: 80
