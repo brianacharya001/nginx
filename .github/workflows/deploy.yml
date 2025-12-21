@@ -34,48 +34,73 @@ jobs:
 
     - name: Monitor rollout and handle rollback
       run: |
-        echo "⏳ Waiting for rollout to complete..."
+        echo "⏳ Waiting for deployment rollout to complete..."
         set +e
         kubectl rollout status deployment/nginx-deployment --timeout=60s
         STATUS=$?
         set -e
 
         if [ $STATUS -ne 0 ]; then
-          echo "❌ Rollout failed!"
+          echo ""
+          echo "❌ POST-DEPLOYMENT FAILURE DETECTED"
+          echo "----------------------------------"
+          echo "❌ One or more pods failed to become healthy"
+          echo "❌ Deployment revision ${REVISION} is UNSTABLE"
+          echo ""
 
-          echo "🔍 Checking rollout history"
+          echo "🔍 Checking if previous stable revision exists..."
           REV_COUNT=$(kubectl rollout history deployment/nginx-deployment | grep -c revision || true)
 
           if [ "$REV_COUNT" -le 1 ]; then
-            echo "🚨 No previous successful rollout found"
-            echo "⚠️ Automatic rollback is NOT possible"
-            echo "👉 ACTION REQUIRED: Perform MANUAL rollback or fix deployment"
-            echo "👉 Example: kubectl rollout undo deployment/nginx-deployment --to-revision=<REVISION>"
+            echo ""
+            echo "🚨 NO PREVIOUS STABLE REVISION FOUND"
+            echo "⚠️ Automatic rollback CANNOT be performed"
+            echo "👉 REQUIRED ACTION:"
+            echo "   - Fix deployment configuration"
+            echo "   - Or manually roll back once a stable revision exists"
+            echo "   - Example: kubectl rollout undo deployment/nginx-deployment --to-revision=<REV>"
             exit 1
           fi
 
-          echo "↩️ Previous rollout detected — performing automatic rollback"
+          echo ""
+          echo "↩️ PREVIOUS STABLE REVISION FOUND"
+          echo "↩️ Initiating automatic rollback to previous revision..."
           kubectl rollout undo deployment/nginx-deployment
 
-          echo "⏳ Waiting for rollback to stabilize"
+          echo "⏳ Waiting for rollback to stabilize..."
           kubectl rollout status deployment/nginx-deployment --timeout=60s
 
-          echo "🧹 Deleting unhealthy pods"
+          echo ""
+          echo "🧹 Cleaning up unhealthy pods from failed rollout..."
           kubectl get pods \
             --selector=app=nginx \
             --field-selector=status.phase!=Running \
             -o name | xargs -r kubectl delete
 
-          echo "❌ Deployment failed — automatic rollback completed"
+          echo ""
+          echo "✅ ROLLBACK COMPLETED SUCCESSFULLY"
+          echo "--------------------------------"
+          echo "✅ Previous stable revision has been RESTORED"
+          echo "❌ Failed revision ${REVISION} has been ABANDONED"
+          echo "🧹 Unhealthy pods were REMOVED"
+          echo "📌 Cluster is now running LAST KNOWN GOOD STATE"
+          echo ""
+
           exit 1
         fi
 
-        echo "✅ Deployment rollout successful"
+        echo ""
+        echo "✅ DEPLOYMENT SUCCESSFUL"
+        echo "-----------------------"
+        echo "✅ All pods are healthy"
+        echo "📌 Revision ${REVISION} is now ACTIVE"
+        echo ""
 
     - name: Show final deployment and pod status
       run: |
         echo "📊 Final Deployment Status"
         kubectl get deployment nginx-deployment -o wide
 
-        echo "📦 Pod Status"
+        echo ""
+        echo "📦 Final Pod Status"
         kubectl get pods -l app=nginx -o wide
