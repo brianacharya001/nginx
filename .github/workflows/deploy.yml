@@ -20,21 +20,21 @@ jobs:
       run: |
         REVISION=$(echo "${GITHUB_SHA}" | cut -c1-7)
         echo "REVISION=$REVISION" >> $GITHUB_ENV
-        echo "📌 Using revision: $REVISION"
+        echo "Using revision: $REVISION"
 
     - name: Inject revision into deployment manifest
       run: |
-        echo "📝 Injecting revision into deployment.yaml"
+        echo "Injecting revision into deployment.yaml"
         sed -i "s/{{REVISION}}/${REVISION}/g" manifests/deployment.yaml
 
     - name: Apply deployment manifest only
       run: |
-        echo "🚀 Applying Deployment manifest"
+        echo "Applying Deployment manifest"
         kubectl apply -f manifests/deployment.yaml
 
     - name: Monitor rollout and handle rollback
       run: |
-        echo "⏳ Waiting for deployment rollout to complete..."
+        echo "Waiting for deployment rollout to complete..."
         set +e
         kubectl rollout status deployment/nginx-deployment --timeout=60s
         STATUS=$?
@@ -42,20 +42,20 @@ jobs:
 
         if [ $STATUS -ne 0 ]; then
           echo ""
-          echo "❌ POST-DEPLOYMENT FAILURE DETECTED"
+          echo "POST-DEPLOYMENT FAILURE DETECTED"
           echo "----------------------------------"
-          echo "❌ One or more pods failed to become healthy"
-          echo "❌ Deployment revision ${REVISION} is UNSTABLE"
+          echo "One or more pods failed to become healthy"
+          echo "Deployment revision ${REVISION} is UNSTABLE"
           echo ""
 
-          echo "🔍 Checking if previous stable revision exists..."
+          echo "Checking if previous stable revision exists..."
           REV_COUNT=$(kubectl rollout history deployment/nginx-deployment | grep -c revision || true)
 
           if [ "$REV_COUNT" -le 1 ]; then
             echo ""
-            echo "🚨 NO PREVIOUS STABLE REVISION FOUND"
-            echo "⚠️ Automatic rollback CANNOT be performed"
-            echo "👉 REQUIRED ACTION:"
+            echo "NO PREVIOUS STABLE REVISION FOUND"
+            echo "Automatic rollback CANNOT be performed"
+            echo "REQUIRED ACTION:"
             echo "   - Fix deployment configuration"
             echo "   - Or manually roll back once a stable revision exists"
             echo "   - Example: kubectl rollout undo deployment/nginx-deployment --to-revision=<REV>"
@@ -63,40 +63,40 @@ jobs:
           fi
 
           echo ""
-          echo "↩️ PREVIOUS STABLE REVISION FOUND"
-          echo "↩️ Initiating automatic rollback to previous revision..."
+          echo "PREVIOUS STABLE REVISION FOUND"
+          echo "Initiating automatic rollback to previous revision..."
           kubectl rollout undo deployment/nginx-deployment
 
-          echo "⏳ Waiting for rollback to stabilize..."
+          echo "Waiting for rollback to stabilize..."
           kubectl rollout status deployment/nginx-deployment --timeout=60s
 
           echo ""
-          echo "🧹 Cleaning up unhealthy pods from failed rollout..."
+          echo "Cleaning up unhealthy pods from failed rollout..."
           kubectl get pods \
             --selector=app=nginx \
             --field-selector=status.phase!=Running \
             -o name | xargs -r kubectl delete
 
           echo ""
-          echo "✅ ROLLBACK COMPLETED SUCCESSFULLY"
+          echo "ROLLBACK COMPLETED SUCCESSFULLY"
           echo "--------------------------------"
-          echo "✅ Previous stable revision has been RESTORED"
-          echo "❌ Failed revision ${REVISION} has been ABANDONED"
-          echo "🧹 Unhealthy pods were REMOVED"
-          echo "📌 Cluster is now running LAST KNOWN GOOD STATE"
+          echo "Previous stable revision has been RESTORED"
+          echo "Failed revision ${REVISION} has been ABANDONED"
+          echo "Unhealthy pods were REMOVED"
+          echo "Cluster is now running LAST KNOWN GOOD STATE"
           echo ""
 
           exit 1
         fi
 
         echo ""
-        echo "✅ DEPLOYMENT ROLLOUT SUCCESSFUL"
+        echo "DEPLOYMENT ROLLOUT SUCCESSFUL"
         echo "--------------------------------"
 
     - name: Verify active deployment revision
       run: |
         echo ""
-        echo "🔎 Verifying active deployment revision..."
+        echo "Verifying active deployment revision..."
         echo "Expected revision: ${REVISION}"
 
         ACTIVE_REVISIONS=$(kubectl get pods -l app=nginx \
@@ -108,23 +108,23 @@ jobs:
 
         if echo "$ACTIVE_REVISIONS" | grep -q "^${REVISION}$"; then
           echo ""
-          echo "✅ DEPLOYMENT VERIFICATION SUCCESSFUL"
-          echo "📌 Revision ${REVISION} is now ACTIVE"
+          echo "DEPLOYMENT VERIFICATION SUCCESSFUL"
+          echo "Revision ${REVISION} is now ACTIVE"
         else
           echo ""
-          echo "❌ DEPLOYMENT VERIFICATION FAILED"
-          echo "❌ Expected revision ${REVISION} is NOT running"
-          echo "👉 Active revision(s):"
+          echo "DEPLOYMENT VERIFICATION FAILED"
+          echo "Expected revision ${REVISION} is NOT running"
+          echo "Active revision(s):"
           echo "$ACTIVE_REVISIONS"
-          echo "⚠️ Cluster may still be running a previous version"
+          echo "Cluster may still be running a previous version"
           exit 1
         fi
 
     - name: Show final deployment and pod status
       run: |
-        echo "📊 Final Deployment Status"
+        echo "Final Deployment Status"
         kubectl get deployment nginx-deployment -o wide
 
         echo ""
-        echo "📦 Final Pod Status"
+        echo "Final Pod Status"
         kubectl get pods -l app=nginx -o wide
