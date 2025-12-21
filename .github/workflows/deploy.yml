@@ -1,4 +1,4 @@
-name: Deploy Nginx to Localhost (Minikube)
+name: Deploy Nginx Deployment Only (Minikube)
 
 on:
   workflow_dispatch:
@@ -12,36 +12,56 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set kubectl context
-      run: kubectl config use-context minikube
+      run: |
+        echo "🔧 Setting kubectl context to minikube"
+        kubectl config use-context minikube
 
     - name: Set deployment revision
       run: |
         REVISION=$(echo "${GITHUB_SHA}" | cut -c1-7)
         echo "REVISION=$REVISION" >> $GITHUB_ENV
+        echo "📌 Using revision: $REVISION"
 
-    - name: Inject revision into manifests
+    - name: Inject revision into deployment manifest
       run: |
+        echo "📝 Injecting revision into deployment.yaml"
         sed -i "s/{{REVISION}}/${REVISION}/g" manifests/deployment.yaml
 
-    - name: Apply manifests
-      run: kubectl apply -f manifests/
-
-    - name: Wait for rollout (with rollback on failure)
+    - name: Apply deployment manifest only
       run: |
+        echo "🚀 Applying Deployment manifest"
+        kubectl apply -f manifests/deployment.yaml
+
+    - name: Monitor rollout and rollback on failure
+      run: |
+        echo "⏳ Waiting for rollout to complete..."
         set +e
         kubectl rollout status deployment/nginx-deployment --timeout=60s
         STATUS=$?
         set -e
 
         if [ $STATUS -ne 0 ]; then
-          echo "❌ Deployment failed — rolling back to the previous revision"
+          echo "❌ Rollout failed!"
+
+          echo "↩️ Rolling back to previous deployment revision"
           kubectl rollout undo deployment/nginx-deployment
+
+          echo "⏳ Waiting for rollback to stabilize"
           kubectl rollout status deployment/nginx-deployment --timeout=60s
-          echo "❌ Deployment failed — rollout to the previous revision completed"
+
+          echo "🧹 Deleting unhealthy pods"
+          kubectl get pods \
+            --selector=app=nginx \
+            --field-selector=status.phase!=Running \
+            -o name | xargs -r kubectl delete
+
+          echo "❌ Deployment failed and rollback completed"
           exit 1
         fi
 
-        echo "✅ Deployment successfully completed"
+        echo "✅ Deployment rollout successful"
 
-    - name: Show final deployment state
-      run: kubectl get deployment nginx-deployment -o wide
+    - name: Show final deployment and pod status
+      run: |
+        echo "📊 Final Deployment Status"
+        kubectl get deployment nginx-deployment -o wide
