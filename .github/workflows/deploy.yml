@@ -1,4 +1,4 @@
-name: Deploy Nginx with Revision Handling
+name: Deploy Nginx with Safe Failed Revision Removal
 
 on:
   workflow_dispatch:
@@ -39,12 +39,17 @@ jobs:
 
         if [ $STATUS -ne 0 ]; then
           echo "❌ Deployment failed"
-          echo "🗑️ Deleting failed deployment revision to clear pods"
-          kubectl delete deployment nginx-deployment
-          echo "✅ Failed deployment deleted — previous pods remain unaffected"
+          echo "🗑️ Deleting only the failed ReplicaSet"
+
+          # Get the latest ReplicaSet (assume it's the failed one)
+          FAILED_RS=$(kubectl get rs -l app=nginx -o jsonpath='{.items[-1].metadata.name}')
+          echo "Deleting failed ReplicaSet: $FAILED_RS"
+          kubectl delete rs $FAILED_RS
+
+          echo "✅ Failed revision removed — healthy pods remain running"
         else
           echo "✅ Deployment successfully completed"
         fi
 
     - name: Show final deployment state
-      run: kubectl get deployments,pods,services
+      run: kubectl get deployments,rs,pods,services
