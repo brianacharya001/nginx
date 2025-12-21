@@ -11,6 +11,9 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: List manifests folder contents (debug)
+      run: ls -l manifests/
+
     - name: Set kubectl context
       run: kubectl config use-context minikube
 
