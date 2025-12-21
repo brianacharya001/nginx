@@ -13,7 +13,7 @@ jobs:
 
     - name: Set kubectl context
       run: |
-        echo "🔧 Setting kubectl context to minikube"
+        echo "Setting kubectl context to minikube"
         kubectl config use-context minikube
 
     - name: Set deployment revision
