@@ -90,11 +90,35 @@ jobs:
         fi
 
         echo ""
-        echo "✅ DEPLOYMENT SUCCESSFUL"
-        echo "-----------------------"
-        echo "✅ All pods are healthy"
-        echo "📌 Revision ${REVISION} is now ACTIVE"
+        echo "✅ DEPLOYMENT ROLLOUT SUCCESSFUL"
+        echo "--------------------------------"
+
+    - name: Verify active deployment revision
+      run: |
         echo ""
+        echo "🔎 Verifying active deployment revision..."
+        echo "Expected revision: ${REVISION}"
+
+        ACTIVE_REVISIONS=$(kubectl get pods -l app=nginx \
+          -o jsonpath='{range .items[*]}{.metadata.labels.app\.kubernetes\.io/revision}{"\n"}{end}' \
+          | sort -u)
+
+        echo "Detected active revision(s):"
+        echo "$ACTIVE_REVISIONS"
+
+        if echo "$ACTIVE_REVISIONS" | grep -q "^${REVISION}$"; then
+          echo ""
+          echo "✅ DEPLOYMENT VERIFICATION SUCCESSFUL"
+          echo "📌 Revision ${REVISION} is now ACTIVE"
+        else
+          echo ""
+          echo "❌ DEPLOYMENT VERIFICATION FAILED"
+          echo "❌ Expected revision ${REVISION} is NOT running"
+          echo "👉 Active revision(s):"
+          echo "$ACTIVE_REVISIONS"
+          echo "⚠️ Cluster may still be running a previous version"
+          exit 1
+        fi
 
     - name: Show final deployment and pod status
       run: |
