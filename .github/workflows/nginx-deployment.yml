@@ -1,24 +1,22 @@
-name: Deploy Nginx to Localhost (Minikube)
-
-on:
-  workflow_dispatch:
-
-jobs:
-  deploy:
-    runs-on: self-hosted
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set kubectl context
-        run: kubectl config use-context minikube
-
-      - name: Apply Nginx Deployment
-        run: kubectl apply -f manifests/deployment.yaml
-
-      - name: Wait for rollout
-        run: kubectl rollout status deployment/nginx-deployment --timeout=60s
-
-      - name: Show deployment state
-        run: kubectl get deployment nginx-deployment -o wide
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  annotations:
+    app.kubernetes.io/revision: "rev-PLACEHOLDER"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+        app.kubernetes.io/revision: "rev-PLACEHOLDER"
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:latest
+        ports:
+        - containerPort: 80
