@@ -1,4 +1,4 @@
-name: Deploy Nginx to Localhost (Minikube)
+name: Deploy Nginx (Fail & Delete Failed Revision)
 
 on:
   workflow_dispatch:
@@ -21,12 +21,12 @@ jobs:
 
     - name: Inject revision into manifests
       run: |
-        sed -i "s/{{REVISION}}/${REVISION}/g" manifests/deployment.yaml
+        sed -i "s/{{REVISION}}/${REVISION}/g" manifests/bad-deployment.yaml
 
-    - name: Apply manifests
+    - name: Apply manifests (may fail)
       run: kubectl apply -f manifests/
 
-    - name: Wait for rollout (with rollback on failure)
+    - name: Monitor rollout and delete failed revision
       run: |
         set +e
         kubectl rollout status deployment/nginx-deployment --timeout=60s
@@ -34,14 +34,16 @@ jobs:
         set -e
 
         if [ $STATUS -ne 0 ]; then
-          echo "❌ Deployment failed — rolling back to the previous revision"
-          kubectl rollout undo deployment/nginx-deployment
-          kubectl rollout status deployment/nginx-deployment --timeout=60s
-          echo "❌ Deployment failed — rollout to the previous revision completed"
+          echo "❌ Deployment failed"
+          echo "🗑️ Deleting failed deployment revision to clear pods"
+
+          kubectl delete deployment nginx-deployment
+          
+          echo "✅ Failed deployment deleted — previous pods remain unaffected"
           exit 1
         fi
 
         echo "✅ Deployment successfully completed"
 
     - name: Show final deployment state
-      run: kubectl get deployment nginx-deployment -o wide
+      run: kubectl get deployments,pods

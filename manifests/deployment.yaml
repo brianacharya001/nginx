@@ -17,6 +17,6 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: nginx:latest
+        image: nginx:does-not-exist   # ❌ invalid image → fail rollout
         ports:
         - containerPort: 80
