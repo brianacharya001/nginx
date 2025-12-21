@@ -18,7 +18,13 @@ spec:
     spec:
       containers:
         - name: nginx
-          #image: nginx:latest
-          image: nginx: bad
+          image: nginx:latest
           ports:
             - containerPort: 80
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Starting nginx..."
+              sleep 5
+              echo "Simulating application crash"
+              exit 1
