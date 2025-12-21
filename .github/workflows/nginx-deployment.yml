@@ -1,22 +1,30 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-deployment
-  annotations:
-    app.kubernetes.io/revision: "rev-PLACEHOLDER"
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: nginx
-  template:
-    metadata:
-      labels:
-        app: nginx
-        app.kubernetes.io/revision: "rev-PLACEHOLDER"
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:latest
-        ports:
-        - containerPort: 80
+name: Deploy Nginx to Localhost (Minikube)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set kubectl context
+      run: kubectl config use-context minikube
+
+    - name: Set deployment revision
+      run: |
+        REVISION=$(echo "${GITHUB_SHA}" | cut -c1-7)
+        echo "REVISION=$REVISION" >> $GITHUB_ENV
+
+    - name: Inject revision into manifests
+      run: |
+        sed -i "s/{{REVISION}}/${REVISION}/g" manifests/deployment.yaml
+
+    - name: Deploy manifests
+      run: kubectl apply -f manifests/
+
+    - name: Verify deployment
+      run: kubectl get deployment nginx-deployment -o wide
