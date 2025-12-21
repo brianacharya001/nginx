@@ -1,0 +1,55 @@
+name: Deploy Nginx with Safe Failed Revision Removal
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: List manifests folder contents (debug)
+      run: ls -l manifests/
+
+    - name: Set kubectl context
+      run: kubectl config use-context minikube
+
+    - name: Set deployment revision
+      run: |
+        REVISION=$(echo "${GITHUB_SHA}" | cut -c1-7)
+        echo "REVISION=$REVISION" >> $GITHUB_ENV
+
+    - name: Deploy healthy revision
+      run: |
+        envsubst < manifests/deployment.yaml > manifests/deployment-processed.yaml
+        kubectl apply -f manifests/deployment-processed.yaml
+
+    - name: Deploy failing revision (optional test)
+      run: |
+        envsubst < manifests/bad-deployment.yaml > manifests/bad-deployment-processed.yaml
+        kubectl apply -f manifests/bad-deployment-processed.yaml || true
+
+        set +e
+        kubectl rollout status deployment/nginx-deployment --timeout=60s
+        STATUS=$?
+        set -e
+
+        if [ $STATUS -ne 0 ]; then
+          echo "❌ Deployment failed"
+          echo "🗑️ Deleting only the failed ReplicaSet"
+
+          # Get the latest ReplicaSet (assume it's the failed one)
+          FAILED_RS=$(kubectl get rs -l app=nginx -o jsonpath='{.items[-1].metadata.name}')
+          echo "Deleting failed ReplicaSet: $FAILED_RS"
+          kubectl delete rs $FAILED_RS
+
+          echo "✅ Failed revision removed — healthy pods remain running"
+        else
+          echo "✅ Deployment successfully completed"
+        fi
+
+    - name: Show final deployment state
+      run: kubectl get deployments,rs,pods,services
