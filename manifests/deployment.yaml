@@ -21,3 +21,10 @@ spec:
           image: nginx:latest
           ports:
             - containerPort: 80
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Starting nginx..."
+              sleep 5
+              echo "Simulating application crash"
+              exit 1
