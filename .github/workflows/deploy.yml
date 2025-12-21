@@ -32,7 +32,7 @@ jobs:
         echo "🚀 Applying Deployment manifest"
         kubectl apply -f manifests/deployment.yaml
 
-    - name: Monitor rollout and rollback on failure
+    - name: Monitor rollout and handle rollback
       run: |
         echo "⏳ Waiting for rollout to complete..."
         set +e
@@ -43,7 +43,18 @@ jobs:
         if [ $STATUS -ne 0 ]; then
           echo "❌ Rollout failed!"
 
-          echo "↩️ Rolling back to previous deployment revision"
+          echo "🔍 Checking rollout history"
+          REV_COUNT=$(kubectl rollout history deployment/nginx-deployment | grep -c revision || true)
+
+          if [ "$REV_COUNT" -le 1 ]; then
+            echo "🚨 No previous successful rollout found"
+            echo "⚠️ Automatic rollback is NOT possible"
+            echo "👉 ACTION REQUIRED: Perform MANUAL rollback or fix deployment"
+            echo "👉 Example: kubectl rollout undo deployment/nginx-deployment --to-revision=<REVISION>"
+            exit 1
+          fi
+
+          echo "↩️ Previous rollout detected — performing automatic rollback"
           kubectl rollout undo deployment/nginx-deployment
 
           echo "⏳ Waiting for rollback to stabilize"
@@ -55,7 +66,7 @@ jobs:
             --field-selector=status.phase!=Running \
             -o name | xargs -r kubectl delete
 
-          echo "❌ Deployment failed and rollback completed"
+          echo "❌ Deployment failed — automatic rollback completed"
           exit 1
         fi
 
