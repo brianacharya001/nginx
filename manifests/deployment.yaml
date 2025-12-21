@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: nginx-deployment
   annotations:
-    app.kubernetes.io/revision: "{{REVISION}}"
+    app.kubernetes.io/revision: "${REVISION}"
 spec:
   replicas: 1
   selector:
@@ -13,10 +13,10 @@ spec:
     metadata:
       labels:
         app: nginx
-        app.kubernetes.io/revision: "{{REVISION}}"
+        app.kubernetes.io/revision: "${REVISION}"
     spec:
       containers:
       - name: nginx
-        image: nginx:does-not-exist   # ❌ invalid image → fails rollout
+        image: nginx:does-not-exist  # ❌ invalid image for failure test
         ports:
         - containerPort: 80

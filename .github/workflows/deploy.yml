@@ -21,17 +21,14 @@ jobs:
 
     - name: Deploy healthy revision
       run: |
-        # Inject revision safely and apply
         envsubst < manifests/deployment.yaml > manifests/deployment-processed.yaml
         kubectl apply -f manifests/deployment-processed.yaml
 
     - name: Deploy failing revision (optional test)
       run: |
-        # Inject revision safely
         envsubst < manifests/bad-deployment.yaml > manifests/bad-deployment-processed.yaml
         kubectl apply -f manifests/bad-deployment-processed.yaml || true
 
-        # Check rollout status
         set +e
         kubectl rollout status deployment/nginx-deployment --timeout=60s
         STATUS=$?
