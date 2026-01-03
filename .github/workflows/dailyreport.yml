@@ -6,23 +6,26 @@ on:
 jobs:
   build:
     runs-on: self-hosted
+    # If secrets are in a specific environment, uncomment the line below:
+    # environment: production  
 
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v3
 
-      - name: Install dependencies and Run
+      - name: Install and Run
         env:
-          # These must match exactly the names in Settings -> Secrets -> Actions
+          # Verify these names match exactly in Settings > Secrets > Actions
           USER_EMAIL: ${{ secrets.USER_EMAIL }}
           USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
         run: |
-          # 1. Create a virtual environment
+          # 1. Setup isolated environment
           python3.9 -m venv venv
+          source venv/bin/activate
           
-          # 2. Install dependencies into that environment
-          ./venv/bin/pip install --upgrade pip
-          ./venv/bin/pip install -r requirements.txt
+          # 2. Install dependencies inside the active venv
+          pip install --upgrade pip
+          pip install python-dotenv requests
           
-          # 3. Run the script using the virtual environment's python
-          ./venv/bin/python send_email.py
+          # 3. Run script while venv is still active
+          python send_email.py
