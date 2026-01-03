@@ -11,18 +11,18 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v3
 
-      # REMOVED actions/setup-python step as it is incompatible with Rocky Linux
-
-      - name: Install dependencies
-        run: |
-          # Use python3.9 explicitly to ensure the correct environment
-          python3.9 -m pip install --upgrade pip
-          python3.9 -m pip install -r requirements.txt
-
-      - name: Run the email code
+      - name: Install dependencies and Run
         env:
+          # These must match exactly the names in Settings -> Secrets -> Actions
           USER_EMAIL: ${{ secrets.USER_EMAIL }}
           USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
         run: |
-          # Use python3.9 to execute your script
-          python3.9 send_email.py
+          # 1. Create a virtual environment
+          python3.9 -m venv venv
+          
+          # 2. Install dependencies into that environment
+          ./venv/bin/pip install --upgrade pip
+          ./venv/bin/pip install -r requirements.txt
+          
+          # 3. Run the script using the virtual environment's python
+          ./venv/bin/python send_email.py
