@@ -1,21 +1,20 @@
 name: dailyreport
 
 on:
-  # This allows manual trigger of the workflow
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: self-hosted  # Ensure you're using a self-hosted runner
+    runs-on: self-hosted  # Using a self-hosted runner
 
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v3  # Latest checkout version
+        uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v3  # Latest setup-python version
+        uses: actions/setup-python@v3
         with:
-          python-version: "3.x"  # Ensure you're using a compatible Python version
+          python-version: "3.9"  # Use a specific Python version
 
       - name: Install dependencies
         run: |
@@ -24,8 +23,7 @@ jobs:
 
       - name: Run the email code
         env:
-          USER_EMAIL: ${{ secrets.USER_EMAIL }}  # Secrets for email
+          USER_EMAIL: ${{ secrets.USER_EMAIL }}
           USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
         run: |
           python send_email.py
-
