@@ -11,18 +11,11 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@v3
 
-      # Replace 'actions/setup-python' with this manual setup
-      - name: Set up Python 3.9 (Manual)
-        run: |
-          # Verify python3.9 is installed
-          python3.9 --version
-          # Ensure pip is available for 3.9
-          python3.9 -m ensurepip --upgrade
-          # Add alias so subsequent 'python' commands use 3.9
-          echo "python=python3.9" >> $GITHUB_ENV
+      # REMOVED actions/setup-python step as it is incompatible with Rocky Linux
 
       - name: Install dependencies
         run: |
+          # Use python3.9 explicitly to ensure the correct environment
           python3.9 -m pip install --upgrade pip
           python3.9 -m pip install -r requirements.txt
 
@@ -31,4 +24,5 @@ jobs:
           USER_EMAIL: ${{ secrets.USER_EMAIL }}
           USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
         run: |
+          # Use python3.9 to execute your script
           python3.9 send_email.py
