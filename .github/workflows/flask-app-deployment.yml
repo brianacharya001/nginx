@@ -20,61 +20,51 @@ jobs:
       run: |
         REVISION=$(echo "${GITHUB_SHA}" | cut -c1-7)
         echo "REVISION=$REVISION" >> $GITHUB_ENV
-        echo "Using revision: $REVISION"
 
-    - name: Inject revision into deployment manifest
+    - name: Inject revision into manifest
       run: |
-        echo "Injecting revision into deployment.yaml"
-        # Replaces the placeholder with the actual Git SHA
-        sed -i "s/{{REVISION}}/${REVISION}/g" manifests/deployment.yaml
+        echo "Injecting revision ${REVISION} into good_deployment/deployment.yaml"
+        sed -i "s/{{REVISION}}/${REVISION}/g" good_deployment/deployment.yaml
 
-    - name: Apply deployment manifest only
+    - name: Apply Kubernetes manifests
       run: |
-        echo "Applying Deployment manifest"
-        kubectl apply -f manifests/deployment.yaml
+        kubectl apply -f good_deployment/deployment.yaml
+        kubectl apply -f good_deployment/service.yaml
 
     - name: Monitor rollout and handle rollback
       run: |
-        echo "Waiting for deployment rollout to complete..."
+        echo "Waiting for deployment rollout (Timeout: 180s)..."
         set +e
-        # Targeting the specific Flask deployment
-        kubectl rollout status deployment/flask-app-deployment --timeout=60s
+        kubectl rollout status deployment/flask-app-deployment --timeout=180s
         STATUS=$?
         set -e
 
         if [ $STATUS -ne 0 ]; then
-          echo "POST-DEPLOYMENT FAILURE DETECTED"
+          echo "DEPLOYMENT FAILED - Analyzing logs..."
+          kubectl get pods -l app=flask-app
+          kubectl describe deployment flask-app-deployment
+          
           REV_COUNT=$(kubectl rollout history deployment/flask-app-deployment | grep -c revision || true)
-
-          if [ "$REV_COUNT" -le 1 ]; then
-            echo "NO PREVIOUS STABLE REVISION FOUND"
-            exit 1
+          if [ "$REV_COUNT" -gt 1 ]; then
+            echo "Rolling back to previous stable version..."
+            kubectl rollout undo deployment/flask-app-deployment
+          else
+            echo "No previous version found to roll back to."
           fi
-
-          echo "Initiating automatic rollback..."
-          kubectl rollout undo deployment/flask-app-deployment
-          kubectl rollout status deployment/flask-app-deployment --timeout=60s
           exit 1
         fi
         echo "DEPLOYMENT ROLLOUT SUCCESSFUL"
 
-    - name: Verify active deployment revision
+    - name: Verify revision matches
       run: |
-        echo "Verifying active deployment revision: ${REVISION}"
-        ACTIVE_REVISIONS=$(kubectl get pods -l app=flask-app \
-          -o jsonpath='{range .items[*]}{.metadata.labels.app\.kubernetes\.io/revision}{"\n"}{end}' \
-          | sort -u)
-
-        echo "Detected active revision(s): $ACTIVE_REVISIONS"
-
-        if echo "$ACTIVE_REVISIONS" | grep -q "^${REVISION}$"; then
-          echo "DEPLOYMENT VERIFICATION SUCCESSFUL"
-        else
-          echo "DEPLOYMENT VERIFICATION FAILED"
+        ACTIVE_REVISION=$(kubectl get pods -l app=flask-app -o jsonpath='{.items[0].metadata.labels.app\.kubernetes\.io/revision}')
+        echo "Expected: ${REVISION}, Found: ${ACTIVE_REVISION}"
+        if [ "$ACTIVE_REVISION" != "$REVISION" ]; then
+          echo "Mismatch detected!"
           exit 1
         fi
 
-    - name: Show final deployment and pod status
+    - name: Final Status
       run: |
-        kubectl get deployment flask-app-deployment -o wide
-        kubectl get pods -l app=flask-app -o wide
+        kubectl get svc flask-app-service
+        echo "App is accessible via 'minikube service flask-app-service'"
