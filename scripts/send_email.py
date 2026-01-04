@@ -16,8 +16,8 @@ jobs:
         with:
           server_address: smtp.gmail.com
           server_port: 465
-          username: ${{ secrets.GMAIL_USER }}
-          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          username: ${{ secrets.USER_EMAIL }}
+          password: ${{ secrets.USER_PASSWORD }}
           subject: "GitHub Action Result: ${{ github.workflow }} - ${{ job.status }}"
           to: recipient@gmail.com
           from: GitHub Automation
