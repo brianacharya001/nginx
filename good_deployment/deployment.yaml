@@ -18,10 +18,12 @@ spec:
       containers:
       - name: flask-container
         image: python:3.9-slim
-        command: ["python", "-c"]
-        # Fast inline script to ensure the app runs immediately
+        command: ["/bin/sh", "-c"]
+        # In 2026, we must install dependencies if not using a custom pre-built image
         args: 
           - |
+            pip install flask
+            python -c "
             from flask import Flask
             import os
             app = Flask(__name__)
@@ -30,8 +32,16 @@ spec:
                 rev = os.getenv('APP_REVISION', 'unknown')
                 return f'Revision: {rev}'
             app.run(host='0.0.0.0', port=5000)
+            "
         ports:
         - containerPort: 5000
         env:
         - name: APP_REVISION
           value: "{{REVISION}}"
+        # Liveness probe helps ensure the container is truly healthy
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 15
+          periodSeconds: 20
