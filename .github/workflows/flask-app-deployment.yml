@@ -1,0 +1,80 @@
+name: Deploy Flask App (Minikube)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set kubectl context
+      run: |
+        echo "Setting kubectl context to minikube"
+        kubectl config use-context minikube
+
+    - name: Set deployment revision
+      run: |
+        REVISION=$(echo "${GITHUB_SHA}" | cut -c1-7)
+        echo "REVISION=$REVISION" >> $GITHUB_ENV
+        echo "Using revision: $REVISION"
+
+    - name: Inject revision into deployment manifest
+      run: |
+        echo "Injecting revision into deployment.yaml"
+        # Replaces the placeholder with the actual Git SHA
+        sed -i "s/{{REVISION}}/${REVISION}/g" manifests/deployment.yaml
+
+    - name: Apply deployment manifest only
+      run: |
+        echo "Applying Deployment manifest"
+        kubectl apply -f manifests/deployment.yaml
+
+    - name: Monitor rollout and handle rollback
+      run: |
+        echo "Waiting for deployment rollout to complete..."
+        set +e
+        # Targeting the specific Flask deployment
+        kubectl rollout status deployment/flask-app-deployment --timeout=60s
+        STATUS=$?
+        set -e
+
+        if [ $STATUS -ne 0 ]; then
+          echo "POST-DEPLOYMENT FAILURE DETECTED"
+          REV_COUNT=$(kubectl rollout history deployment/flask-app-deployment | grep -c revision || true)
+
+          if [ "$REV_COUNT" -le 1 ]; then
+            echo "NO PREVIOUS STABLE REVISION FOUND"
+            exit 1
+          fi
+
+          echo "Initiating automatic rollback..."
+          kubectl rollout undo deployment/flask-app-deployment
+          kubectl rollout status deployment/flask-app-deployment --timeout=60s
+          exit 1
+        fi
+        echo "DEPLOYMENT ROLLOUT SUCCESSFUL"
+
+    - name: Verify active deployment revision
+      run: |
+        echo "Verifying active deployment revision: ${REVISION}"
+        ACTIVE_REVISIONS=$(kubectl get pods -l app=flask-app \
+          -o jsonpath='{range .items[*]}{.metadata.labels.app\.kubernetes\.io/revision}{"\n"}{end}' \
+          | sort -u)
+
+        echo "Detected active revision(s): $ACTIVE_REVISIONS"
+
+        if echo "$ACTIVE_REVISIONS" | grep -q "^${REVISION}$"; then
+          echo "DEPLOYMENT VERIFICATION SUCCESSFUL"
+        else
+          echo "DEPLOYMENT VERIFICATION FAILED"
+          exit 1
+        fi
+
+    - name: Show final deployment and pod status
+      run: |
+        kubectl get deployment flask-app-deployment -o wide
+        kubectl get pods -l app=flask-app -o wide
