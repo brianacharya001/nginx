@@ -55,16 +55,15 @@ jobs:
         fi
         echo "DEPLOYMENT ROLLOUT SUCCESSFUL"
 
-        - name: Verify revision matches
+    - name: Verify revision matches
       run: |
-        # Use a more robust selector to get the label from the first pod
+        # Fixed JSONPath and Indentation
         ACTIVE_REVISION=$(kubectl get pods -l app=flask-app -o jsonpath='{.items[0].metadata.labels.app\.kubernetes\.io/revision}')
         echo "Expected: ${REVISION}, Found: ${ACTIVE_REVISION}"
         if [ "$ACTIVE_REVISION" != "$REVISION" ]; then
-          echo "Mismatch detected! The cluster is not running the latest SHA."
+          echo "Mismatch detected!"
           exit 1
         fi
-
 
     - name: Final Status
       run: |
