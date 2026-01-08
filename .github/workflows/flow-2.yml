@@ -1,0 +1,15 @@
+name: Flow 2 - After Flow 1
+
+on:
+  workflow_run:
+    workflows: ["Flow 1 - Manual"]
+    types:
+      - completed
+
+jobs:
+  job2:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Flow 2
+        run: echo "Flow 2 is running after Flow 1"
