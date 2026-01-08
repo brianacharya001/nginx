@@ -1,4 +1,4 @@
-name: Manual Nginx Deploy (Develop)
+name: Manual Nginx Deploy (feature)
 
 on:
   # Enables the "Run workflow" button in the GitHub Actions tab
@@ -13,10 +13,10 @@ jobs:
     if: github.ref == 'refs/heads/feature'
 
     steps:
-      - name: Checkout Development Branch
+      - name: Checkout feature Branch
         uses: actions/checkout@v4
         with:
-          ref: develop
+          ref: feature
 
       - name: Ensure Minikube is Ready
         run: |
