@@ -9,7 +9,7 @@ on:
 jobs:
   job2:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    runs-on: localhost
+    runs-on: self-hosted
     steps:
       - name: Run Flow 2
         run: echo "Flow 2 triggered after Flow 1 success"
