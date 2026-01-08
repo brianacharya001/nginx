@@ -25,7 +25,7 @@ jobs:
 
       - name: Deploy Nginx to Minikube
         run: |
-          # Apply deployment directly from the develop branch
+          # Apply deployment directly from the feature branch
           kubectl create deployment nginx-develop --image=nginx:latest --dry-run=client -o yaml | kubectl apply -f -
           
       - name: Expose and Verify
