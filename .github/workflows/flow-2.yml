@@ -10,7 +10,23 @@ jobs:
   job2:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: self-hosted
+
     steps:
-      - name: Run Flow 2
-        run: echo "Flow 2 triggered after Flow 1 success"
+      - name: Show workflow_run event details
+        run: |
+          echo "=== Workflow Run Event Details ==="
+          echo "Triggered workflow name: ${{ github.event.workflow_run.name }}"
+          echo "Workflow run ID:        ${{ github.event.workflow_run.id }}"
+          echo "Workflow conclusion:    ${{ github.event.workflow_run.conclusion }}"
+          echo "Workflow status:        ${{ github.event.workflow_run.status }}"
+          echo "Triggered by event:     ${{ github.event.workflow_run.event }}"
+          echo "Triggered by actor:     ${{ github.event.workflow_run.actor.login }}"
+          echo "Head branch:            ${{ github.event.workflow_run.head_branch }}"
+          echo "Head SHA:               ${{ github.event.workflow_run.head_sha }}"
+          echo "Repository:             ${{ github.repository }}"
+          echo "Run URL:                ${{ github.event.workflow_run.html_url }}"
+
+      - name: Run Flow 2 logic
+        run: echo "Flow 2 triggered after Flow 1 completed successfully"
+
 
