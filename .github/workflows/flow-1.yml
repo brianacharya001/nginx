@@ -3,7 +3,7 @@ name: Flow 1 - Event Driven
 on:
   push:
     branches:
-      - development
+      - feature
 
 jobs:
   job1:
