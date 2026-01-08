@@ -3,11 +3,11 @@ name: Flow 1 - Event Driven
 on:
   push:
     branches:
-      - main
+      - development
 
 jobs:
   job1:
-    runs-on: ubuntu-latest
+    runs-on: localhost
     steps:
       - name: Run Flow 1
         run: echo "Flow 1 triggered by push event"
