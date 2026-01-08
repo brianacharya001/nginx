@@ -2,7 +2,7 @@ name: Flow 2 - After Flow 1
 
 on:
   workflow_run:
-    workflows: ["Flow 1 - Manual"]
+    workflows: ["Flow 1 - Event Driven"]
     types:
       - completed
 
@@ -12,4 +12,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run Flow 2
-        run: echo "Flow 2 is running after Flow 1"
+        run: echo "Flow 2 triggered after Flow 1 success"
+
