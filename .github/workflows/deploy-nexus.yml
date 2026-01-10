@@ -1,1 +1,38 @@
 
+name: Deploy Nexus OSS (Minikube Self-Hosted)
+
+on:
+  workflow_dispatch: # Allows you to run this manually from the GitHub Actions tab
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Minikube Connection
+        run: |
+          echo "Switching context to minikube..."
+          kubectl config use-context minikube
+          kubectl cluster-info
+          
+      - name: Add Sonatype Helm Repo
+        run: |
+          helm repo add sonatype https://sonatype.github.io/helm3-charts/
+          helm repo update
+
+      - name: Deploy Nexus via Helm
+        run: |
+          # This command will install nexus if it doesn't exist, or update it if it does.
+          # We use the values.yaml file located in your repository.
+          helm upgrade --install nexus-repo sonatype/nexus-repository-manager \
+            --namespace nexus \
+            --create-namespace \
+            -f charts/nexus/values.yaml \
+            --wait
+            
+      - name: Get Nexus Service URL
+        run: |
+          echo "Nexus is being deployed. If using Minikube, run 'minikube service nexus-repo-nexus-repository-manager -n nexus' on your host to access it."
