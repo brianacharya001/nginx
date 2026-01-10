@@ -1,8 +1,7 @@
-
 name: Deploy Nexus OSS (Minikube Self-Hosted)
 
 on:
-  workflow_dispatch: # Allows you to run this manually from the GitHub Actions tab
+  workflow_dispatch: # Allows manual trigger from GitHub UI
 
 jobs:
   deploy:
@@ -12,27 +11,38 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Verify Minikube Connection
+      - name: Verify Minikube & Network
         run: |
-          echo "Switching context to minikube..."
+          echo "Switching to Minikube context..."
           kubectl config use-context minikube
-          kubectl cluster-info
           
-      - name: Add Sonatype Helm Repo
+          echo "Checking cluster connectivity..."
+          if ! kubectl get nodes; then
+            echo "Error: Cannot reach Minikube. Is it running?"
+            exit 1
+          fi
+
+      - name: Add Community Helm Repo
         run: |
-          helm repo add sonatype https://sonatype.github.io/helm3-charts/
+          # Switching from deprecated Sonatype repo to SteveHipwell
+          helm repo add stevehipwell https://stevehipwell.github.io/helm-charts/
           helm repo update
 
       - name: Deploy Nexus via Helm
         run: |
-          # This command will install nexus if it doesn't exist, or update it if it does.
-          # We use the values.yaml file located in your repository.
-          helm upgrade --install nexus-repo sonatype/nexus-repository-manager \
+          helm upgrade --install nexus-repo stevehipwell/nexus3 \
             --namespace nexus \
             --create-namespace \
             -f charts/nexus/values.yaml \
-            --wait
-            
-      - name: Get Nexus Service URL
+            --wait \
+            --timeout 10m
+
+      - name: Final Connection Instructions
         run: |
-          echo "Nexus is being deployed. If using Minikube, run 'minikube service nexus-repo-nexus-repository-manager -n nexus' on your host to access it."
+          NODE_IP=$(minikube ip)
+          NODE_PORT=$(kubectl get svc nexus-repo-nexus3 -n nexus -o jsonpath='{.spec.ports[0].nodePort}')
+          echo "----------------------------------------------------------"
+          echo "SUCCESS: Nexus is deploying."
+          echo "Access URL: http://$NODE_IP:$NODE_PORT"
+          echo "Default Credentials: admin / admin123 (if not changed)"
+          echo "----------------------------------------------------------"
