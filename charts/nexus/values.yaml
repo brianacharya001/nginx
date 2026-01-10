@@ -1,18 +1,21 @@
 nexus:
   env:
     - name: NEXUS_SECURITY_RANDOMPASSWORD
-      value: "false" # Set to false for default admin/admin123 (Change immediately!)
+      value: "false"
+  # Minikube specific: adjust resources if your laptop is struggling
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "1000m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
 
 persistence:
   enabled: true
-  accessMode: ReadWriteOnce
-  size: 20Gi
+  storageClass: "standard" # Minikube default storage class
+  size: 8Gi
 
-# If you have an ingress controller (Nginx/Traefik)
-ingress:
-  enabled: true
-  annotations:
-    kubernetes.io/ingress.class: nginx
-  path: /
-  hosts:
-    - nexus.example.com
+# Use NodePort for easy access in Minikube without an Ingress controller
+service:
+  type: NodePort
