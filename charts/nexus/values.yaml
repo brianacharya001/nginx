@@ -5,11 +5,11 @@ nexus:
   # Minikube specific: adjust resources if your laptop is struggling
   resources:
     requests:
-      memory: "2Gi"
-      cpu: "1000m"
+      memory: "8Gi"
+      cpu: "4"
     limits:
-      memory: "4Gi"
-      cpu: "2000m"
+      memory: "8Gi"
+      cpu: "4"
 
 persistence:
   enabled: true
