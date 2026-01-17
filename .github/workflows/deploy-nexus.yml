@@ -35,7 +35,7 @@ jobs:
             --create-namespace \
             -f charts/nexus/values.yaml \
             --wait \
-            --timeout 10m
+            --timeout 20m
 
       - name: Final Connection Instructions
         run: |
