@@ -11,6 +11,20 @@ nexus:
       memory: "8Gi"
       cpu: "4"
 
+  # Tune startup probe to avoid Kubernetes marking pod unhealthy too early
+  startupProbe:
+    enabled: true
+    initialDelaySeconds: 600   # wait 10 minutes before first check
+    periodSeconds: 10           # check every 10s
+    failureThreshold: 60        # allow ~10 minutes for startup probe to succeed
+  logging:
+    request:
+      enabled: false
+    audit:
+      enabled: false
+    tasks:
+      enabled: false
+
 persistence:
   enabled: true
   storageClass: "standard" # Minikube default storage class
