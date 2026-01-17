@@ -2,7 +2,10 @@ nexus:
   env:
     - name: NEXUS_SECURITY_RANDOMPASSWORD
       value: "false"
-  # Minikube specific: adjust resources if your laptop is struggling
+    - name: INSTALL4J_ADD_VM_PARAMS
+      value: "-Xms2G -Xmx2G -XX:MaxDirectMemorySize=2G"
+  
+  # Resources for Minikube / single-node
   resources:
     requests:
       memory: "8Gi"
@@ -11,12 +14,20 @@ nexus:
       memory: "8Gi"
       cpu: "4"
 
-  # Tune startup probe to avoid Kubernetes marking pod unhealthy too early
+  # Startup probe tuned to avoid Helm timeout
   startupProbe:
     enabled: true
     initialDelaySeconds: 600   # wait 10 minutes before first check
     periodSeconds: 10           # check every 10s
     failureThreshold: 60        # allow ~10 minutes for startup probe to succeed
+
+  # Optional: Disable liveness/readiness probes for Minikube (first start)
+  livenessProbe:
+    enabled: false
+  readinessProbe:
+    enabled: false
+
+  # Disable log tail sidecars to speed up readiness
   logging:
     request:
       enabled: false
@@ -30,6 +41,7 @@ persistence:
   storageClass: "standard" # Minikube default storage class
   size: 8Gi
 
-# Use NodePort for easy access in Minikube without an Ingress controller
+# Use NodePort for easy access in Minikube
 service:
   type: NodePort
+  nodePort: 32476  # fixed NodePort for consistent access
